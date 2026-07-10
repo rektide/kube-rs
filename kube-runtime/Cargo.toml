@@ -12,6 +12,20 @@ keywords = ["kubernetes", "runtime", "reflector", "watcher", "controller"]
 categories = ["web-programming::http-client", "caching", "network-programming"]
 
 [features]
+default = ["client", "events", "finalizer", "wait"]
+# Kubernetes API client integration: the `watcher()`/`watch_object()` entry
+# points and the `Controller` builder, all of which drive a `kube_client::Api`.
+# Without it, the á la carte machinery (scheduler, Runner, reflector
+# Store/Writer, `applier`, the `watcher::Event` vocabulary, predicates)
+# compiles without kube-client, hyper, tower, TLS, or k8s-openapi — for
+# driving the runtime from non-Kubernetes event sources.
+client = ["dep:kube-client", "kube-core/k8s-openapi"]
+# `events::Recorder`: publishes core/v1 Events through the client.
+events = ["client", "dep:k8s-openapi", "dep:hostname"]
+# `finalizer()`: JSON-patches `metadata.finalizers` through the client.
+finalizer = ["client", "dep:json-patch"]
+# `wait::await_condition()` and the built-in `conditions`.
+wait = ["client"]
 unstable-runtime = ["unstable-runtime-subscribe", "unstable-runtime-stream-control", "unstable-runtime-reconcile-on"]
 unstable-runtime-subscribe = []
 unstable-runtime-stream-control = []
@@ -26,8 +40,9 @@ rustdoc-args = ["--cfg", "docsrs"]
 workspace = true
 
 [dependencies]
-futures = { workspace = true, features = ["async-await"] }
-kube-client = { path = "../kube-client", version = "=4.2.0", default-features = false, features = ["jsonpatch", "client"] }
+futures = { workspace = true, features = ["async-await", "std"] }
+kube-client = { path = "../kube-client", version = "=4.2.0", default-features = false, features = ["jsonpatch", "client"], optional = true }
+kube-core = { path = "../kube-core", version = "=4.2.0", default-features = false }
 educe = { workspace = true, features = ["Clone", "Debug", "Hash", "PartialEq"] }
 serde.workspace = true
 ahash.workspace = true
@@ -36,15 +51,15 @@ pin-project.workspace = true
 tokio = { workspace = true, features = ["time"] }
 tokio-util = { workspace = true, features = ["time"] }
 tracing.workspace = true
-json-patch.workspace = true
+json-patch = { workspace = true, optional = true }
 serde_json.workspace = true
 thiserror.workspace = true
 backon.workspace = true
 hashbrown.workspace = true
-k8s-openapi.workspace = true
+k8s-openapi = { workspace = true, optional = true }
 async-broadcast.workspace = true
 async-stream.workspace = true
-hostname.workspace = true
+hostname = { workspace = true, optional = true }
 
 [dev-dependencies]
 kube = { path = "../kube", features = ["derive", "client", "runtime"] }

@@ -6,6 +6,7 @@ use crate::{
 use jiff::{Timestamp, Unit};
 use std::fmt::Debug;
 
+#[cfg(feature = "k8s-openapi")]
 pub use k8s_openapi::api::autoscaling::v1::{Scale, ScaleSpec, ScaleStatus};
 
 // ----------------------------------------------------------------------------

@@ -5,17 +5,24 @@
 use crate::utils::{Backoff, ResetTimerBackoff};
 
 use backon::BackoffBuilder;
-use educe::Educe;
-use futures::{Stream, StreamExt, stream::BoxStream};
-use kube_client::{
-    Api, Error as ClientErr,
-    api::{ListParams, Resource, ResourceExt, VersionMatch, WatchEvent, WatchParams},
-    core::{ObjectList, Selector, metadata::PartialObjectMeta},
-    error::Status,
+#[cfg(feature = "client")] use educe::Educe;
+#[cfg(feature = "client")]
+use futures::stream::BoxStream;
+#[cfg(feature = "client")]
+use futures::{Stream, StreamExt};
+#[cfg(feature = "client")] use kube_client::{Api, Error as ClientErr};
+#[cfg(feature = "client")]
+use kube_core::{ObjectList, Resource, ResourceExt, WatchEvent, metadata::PartialObjectMeta};
+use kube_core::{
+    Selector, Status,
+    params::{ListParams, VersionMatch, WatchParams},
 };
-use serde::de::DeserializeOwned;
-use std::{clone::Clone, collections::VecDeque, fmt::Debug, future, time::Duration};
+#[cfg(feature = "client")] use serde::de::DeserializeOwned;
+#[cfg(feature = "client")]
+use std::{collections::VecDeque, fmt::Debug, future};
+use std::{clone::Clone, time::Duration};
 use thiserror::Error;
+#[cfg(feature = "client")]
 use tracing::{debug, error, warn};
 
 /// Errors that a watcher can emit
@@ -27,10 +34,12 @@ use tracing::{debug, error, warn};
 #[derive(Debug, Error)]
 pub enum Error {
     /// Received a raw error while performing an api.list
+    #[cfg(feature = "client")]
     #[error("failed to perform initial object list: {0}")]
     InitialListFailed(#[source] kube_client::Error),
 
     /// Received a raw error while starting an api.watch
+    #[cfg(feature = "client")]
     #[error("failed to start watching object: {0}")]
     WatchStartFailed(#[source] kube_client::Error),
 
@@ -39,6 +48,7 @@ pub enum Error {
     WatchError(#[source] Box<Status>),
 
     /// Received a raw error while watching
+    #[cfg(feature = "client")]
     #[error("watch stream failed: {0}")]
     WatchFailed(#[source] kube_client::Error),
 
@@ -111,6 +121,7 @@ impl<K> Event<K> {
     }
 }
 
+#[cfg(feature = "client")]
 #[derive(Educe, Default)]
 #[educe(Debug)]
 /// The internal finite state machine driving the [`watcher`]
@@ -147,6 +158,7 @@ enum State<K> {
 
 /// Used to control whether the watcher receives the full object, or only the
 /// metadata
+#[cfg(feature = "client")]
 trait ApiMode {
     type Value: Clone;
 
@@ -160,6 +172,7 @@ trait ApiMode {
 
 /// A wrapper around the `Api` of a `Resource` type that when used by the
 /// watcher will return the entire (full) object
+#[cfg(feature = "client")]
 struct FullObject<'a, K> {
     api: &'a Api<K>,
 }
@@ -288,6 +301,7 @@ impl Default for Config {
 ///     .timeout(60)
 ///     .labels("kubernetes.io/lifecycle=spot");
 /// ```
+#[cfg_attr(not(feature = "client"), allow(dead_code))]
 impl Config {
     /// Configure the timeout for list/watch calls
     ///
@@ -423,6 +437,7 @@ impl Config {
 ///
 /// This is used to determine whether to set `sendInitialEvents=true` in watch requests.
 /// Only initial watches should request initial events; reconnections should not.
+#[cfg_attr(not(feature = "client"), allow(dead_code))]
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum WatchPhase {
     /// Initial watch from `State::Empty` - requests initial events for streaming lists
@@ -431,6 +446,7 @@ enum WatchPhase {
     Resumed,
 }
 
+#[cfg(feature = "client")]
 impl<K> ApiMode for FullObject<'_, K>
 where
     K: Clone + Debug + DeserializeOwned + Send + 'static,
@@ -452,10 +468,12 @@ where
 
 /// A wrapper around the `Api` of a `Resource` type that when used by the
 /// watcher will return only the metadata associated with an object
+#[cfg(feature = "client")]
 struct MetaOnly<'a, K> {
     api: &'a Api<K>,
 }
 
+#[cfg(feature = "client")]
 impl<K> ApiMode for MetaOnly<'_, K>
 where
     K: Clone + Debug + DeserializeOwned + Send + 'static,
@@ -480,6 +498,7 @@ where
 /// The server closes the watch stream after the configured timeout (default 290s).
 /// We add a small margin so the client detects dead connections where the
 /// server's close never arrives (e.g. network failure).
+#[cfg(feature = "client")]
 const WATCH_IDLE_TIMEOUT_MARGIN: Duration = Duration::from_secs(5);
 
 /// Poll the next item from a watch stream with an idle timeout.
@@ -487,6 +506,7 @@ const WATCH_IDLE_TIMEOUT_MARGIN: Duration = Duration::from_secs(5);
 /// Returns `None` when the stream ends **or** when no item arrives within
 /// `timeout + WATCH_IDLE_TIMEOUT_MARGIN`, causing the watcher to
 /// treat the connection as dead and reconnect.
+#[cfg(feature = "client")]
 async fn next_with_idle_timeout<S, T>(stream: &mut S, timeout: Option<u32>) -> Option<T>
 where
     S: Stream<Item = T> + Unpin,
@@ -508,6 +528,7 @@ where
 ///
 /// This function should be trampolined: if event == `None`
 /// then the function should be called again until it returns a Some.
+#[cfg(feature = "client")]
 #[allow(clippy::too_many_lines)] // for now
 async fn step_trampolined<A>(
     api: &A,
@@ -717,6 +738,7 @@ where
 }
 
 /// Trampoline helper for `step_trampolined`
+#[cfg(feature = "client")]
 async fn step<A>(
     api: &A,
     config: &Config,
@@ -783,6 +805,8 @@ where
 /// that we have seen on the stream. If this is successful then the stream is simply resumed from where it left off.
 /// If this fails because the resource version is no longer valid then we start over with a new stream, starting with
 /// an [`Event::Init`]. The internals mechanics of recovery should be considered an implementation detail.
+#[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+#[cfg(feature = "client")]
 #[doc(alias = "informer")]
 pub fn watcher<K: Resource + Clone + DeserializeOwned + Debug + Send + 'static>(
     api: Api<K>,
@@ -847,6 +871,8 @@ pub fn watcher<K: Resource + Clone + DeserializeOwned + Debug + Send + 'static>(
 /// that we have seen on the stream. If this is successful then the stream is simply resumed from where it left off.
 /// If this fails because the resource version is no longer valid then we start over with a new stream, starting with
 /// an [`Event::Init`]. The internals mechanics of recovery should be considered an implementation detail.
+#[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+#[cfg(feature = "client")]
 #[deprecated(
     since = "3.1.0",
     note = "Use `watcher(Api::<PartialObjectMeta<K>>::all(client), config)` instead. \
@@ -876,6 +902,8 @@ pub fn metadata_watcher<K: Resource + Clone + DeserializeOwned + Debug + Send + 
 /// When using this with an `Api::all` on namespaced resources there is a chance of duplicated names.
 /// To avoid getting confusing / wrong answers for this, use `Api::namespaced` bound to a specific namespace
 /// when watching for transitions to namespaced objects.
+#[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+#[cfg(feature = "client")]
 pub fn watch_object<K: Resource + Clone + DeserializeOwned + Debug + Send + 'static>(
     api: Api<K>,
     name: &str,

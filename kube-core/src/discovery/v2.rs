@@ -5,7 +5,7 @@
 //!
 //! The Aggregated Discovery API is available since Kubernetes 1.26 (beta) and stable in 1.30+.
 
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::{ListMeta, ObjectMeta};
+use crate::k8s::{ListMeta, ObjectMeta};
 use serde::{Deserialize, Serialize};
 
 /// Content negotiation Accept header for Aggregated Discovery API v2

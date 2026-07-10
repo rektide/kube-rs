@@ -7,7 +7,7 @@ use crate::{
     },
     watcher,
 };
-use kube_client::Resource;
+use kube_core::Resource;
 
 use crate::{
     reflector::store::Writer,

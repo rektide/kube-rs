@@ -19,12 +19,17 @@ rustdoc-args = ["--cfg", "docsrs"]
 workspace = true
 
 [features]
+default = ["k8s-openapi"]
+# Use the real generated k8s-openapi types. Disabling this swaps in the
+# lightweight apimachinery stand-ins from `kube_core::k8s` and removes the
+# k8s-openapi dependency entirely (for non-Kubernetes uses of the machinery).
+k8s-openapi = ["dep:k8s-openapi"]
 ws = []
-admission = ["json-patch"]
+admission = ["json-patch", "k8s-openapi"]
 jsonpatch = ["json-patch"]
 schema = ["schemars"]
 kubelet-debug = ["ws"]
-cel = ["dep:kube-cel"]
+cel = ["dep:kube-cel", "k8s-openapi"]
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
@@ -33,9 +38,9 @@ thiserror.workspace = true
 form_urlencoded.workspace = true
 http.workspace = true
 json-patch = { workspace = true, optional = true }
-jiff = { workspace = true, features = ["std"] }
+jiff = { workspace = true, features = ["std", "serde"] }
 schemars = { workspace = true, optional = true }
-k8s-openapi.workspace = true
+k8s-openapi = { workspace = true, optional = true }
 serde-value.workspace = true
 derive_more = { workspace = true, features = ["from"] }
 kube-cel = { version = "0.8.0", optional = true, features = ["validation"] }

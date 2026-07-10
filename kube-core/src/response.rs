@@ -40,7 +40,7 @@ pub struct Status {
 
     /// Standard list metadata - [more info](https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds)
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<k8s_openapi::apimachinery::pkg::apis::meta::v1::ListMeta>,
+    pub metadata: Option<crate::k8s::ListMeta>,
 
     /// A machine-readable description of why this operation is in the “Failure” status.
     ///

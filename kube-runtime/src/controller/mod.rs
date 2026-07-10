@@ -1,27 +1,33 @@
 //! Runs a user-supplied reconciler function on objects when they (or related objects) are updated
 
 use self::runner::Runner;
-#[allow(deprecated)] use crate::watcher::metadata_watcher;
+#[cfg(feature = "client")]
+#[allow(deprecated)]
+use crate::watcher::metadata_watcher;
+#[cfg(feature = "client")]
 use crate::{
-    reflector::{
-        self, ObjectRef, reflector,
-        store::{Store, Writer},
-    },
-    scheduler::{ScheduleRequest, debounced_scheduler},
-    utils::{
-        Backoff, CancelableJoinHandle, KubeRuntimeStreamExt, StreamBackoff, WatchStreamExt, trystream_try_via,
-    },
+    reflector::{reflector, store::Writer},
+    utils::{Backoff, CancelableJoinHandle, StreamBackoff, WatchStreamExt},
     watcher::{self, DefaultBackoff, watcher},
 };
-use educe::Educe;
-use futures::{
-    FutureExt, Stream, StreamExt, TryFuture, TryFutureExt, TryStream, TryStreamExt, channel,
-    future::{self, BoxFuture},
-    stream,
+use crate::{
+    reflector::{self, ObjectRef, store::Store},
+    scheduler::{ScheduleRequest, debounced_scheduler},
+    utils::{KubeRuntimeStreamExt, trystream_try_via},
 };
-use kube_client::api::{Api, DynamicObject, Resource};
+use educe::Educe;
+#[cfg(feature = "client")]
+use futures::{
+    future::{self, BoxFuture},
+    stream::BoxStream,
+};
+use futures::{
+    FutureExt, Stream, StreamExt, TryFuture, TryFutureExt, TryStream, TryStreamExt, channel, stream,
+};
+#[cfg(feature = "client")] use kube_client::Api;
+use kube_core::{DynamicObject, Resource};
 use pin_project::pin_project;
-use serde::de::DeserializeOwned;
+#[cfg(feature = "client")] use serde::de::DeserializeOwned;
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -29,9 +35,9 @@ use std::{
     task::{Poll, ready},
     time::Duration,
 };
-use stream::BoxStream;
 use thiserror::Error;
-use tokio::{runtime::Handle, time::Instant};
+#[cfg(feature = "client")] use tokio::runtime::Handle;
+use tokio::time::Instant;
 use tracing::{Instrument, info_span};
 
 mod future_hash_map;
@@ -687,6 +693,8 @@ impl Config {
 /// #    Ok(())
 /// # }
 /// ```
+#[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+#[cfg(feature = "client")]
 pub struct Controller<K>
 where
     K: Clone + Resource + Debug + 'static,
@@ -708,6 +716,7 @@ where
     config: Config,
 }
 
+#[cfg(feature = "client")]
 impl<K> Controller<K>
 where
     K: Clone + Resource + DeserializeOwned + Debug + Send + Sync + 'static,
@@ -1709,7 +1718,7 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, feature = "client"))]
 mod tests {
     use std::{convert::Infallible, pin::pin, sync::Arc, time::Duration};
 

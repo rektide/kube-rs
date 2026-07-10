@@ -10,7 +10,7 @@ use crate::{
     reflector::store::Writer,
     watcher::{Error, Event},
 };
-use kube_client::Resource;
+use kube_core::Resource;
 
 /// Stream returned by the [`reflect`](super::WatchStreamExt::reflect) method
 #[pin_project]

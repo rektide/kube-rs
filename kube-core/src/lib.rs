@@ -22,8 +22,12 @@ pub use duration::Duration;
 pub mod dynamic;
 pub use dynamic::{ApiResource, DynamicObject};
 
+#[cfg_attr(docsrs, doc(cfg(feature = "k8s-openapi")))]
+#[cfg(feature = "k8s-openapi")]
 pub mod crd;
-pub use crd::CustomResourceExt;
+#[cfg(feature = "k8s-openapi")] pub use crd::CustomResourceExt;
+
+pub mod k8s;
 
 pub mod cel;
 pub use cel::{ListMerge, MapMerge, Message, Reason, Rule, StructMerge};

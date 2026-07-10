@@ -23,8 +23,9 @@ pub use reflect::Reflect;
 pub use stream_backoff::StreamBackoff;
 pub use watch_ext::WatchStreamExt;
 
+#[cfg(feature = "client")] use futures::FutureExt;
 use futures::{
-    FutureExt, Stream, StreamExt, TryStream, TryStreamExt,
+    Stream, StreamExt, TryStream, TryStreamExt,
     stream::{self, Peekable},
 };
 use pin_project::pin_project;
@@ -35,6 +36,7 @@ use std::{
     task::Poll,
 };
 use stream::IntoStream;
+#[cfg(feature = "client")]
 use tokio::{runtime::Handle, task::JoinHandle};
 
 /// Allows splitting a `Stream` into several streams that each emit a disjoint subset of the input stream's items,
@@ -145,10 +147,12 @@ where
 }
 
 /// A [`JoinHandle`] that cancels the [`Future`] when dropped, rather than detaching it
+#[cfg(feature = "client")]
 pub struct CancelableJoinHandle<T> {
     inner: JoinHandle<T>,
 }
 
+#[cfg(feature = "client")]
 impl<T> CancelableJoinHandle<T>
 where
     T: Send + 'static,
@@ -161,12 +165,14 @@ where
     }
 }
 
+#[cfg(feature = "client")]
 impl<T> Drop for CancelableJoinHandle<T> {
     fn drop(&mut self) {
         self.inner.abort()
     }
 }
 
+#[cfg(feature = "client")]
 impl<T> Future for CancelableJoinHandle<T> {
     type Output = T;
 
