@@ -48,7 +48,7 @@ serde.workspace = true
 ahash.workspace = true
 parking_lot.workspace = true
 pin-project.workspace = true
-tokio = { workspace = true, features = ["time"] }
+tokio = { workspace = true, features = ["time", "rt", "signal"] }
 tokio-util = { workspace = true, features = ["time"] }
 tracing.workspace = true
 json-patch = { workspace = true, optional = true }

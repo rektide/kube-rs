@@ -37,8 +37,7 @@ pub mod utils;
 pub mod wait;
 pub mod watcher;
 
-pub use controller::{Config, applier};
-#[cfg(feature = "client")] pub use controller::Controller;
+pub use controller::{Config, Controller, applier};
 #[cfg(feature = "finalizer")] pub use finalizer::finalizer;
 pub use reflector::reflector;
 pub use scheduler::scheduler;

@@ -55,6 +55,17 @@ pub enum Error {
     /// Missing resource version field from api server
     #[error("no metadata.resourceVersion in watch result (does resource support watch?)")]
     NoResourceVersion,
+
+    /// An error from a non-Kubernetes [`WatchSource`](crate::source::WatchSource) or other
+    /// user-supplied trigger stream.
+    ///
+    /// This variant exists so foreign transports can flow their errors through the same
+    /// stream plumbing ([`reflector`](crate::reflector()), [`Controller::for_stream`],
+    /// backoff combinators) without pretending to be an apiserver.
+    ///
+    /// [`Controller::for_stream`]: crate::Controller::for_stream
+    #[error("watch source failed: {0}")]
+    Source(#[source] Box<dyn std::error::Error + Send + Sync>),
 }
 
 /// Type alias for Result with a `watcher::Error` as default.

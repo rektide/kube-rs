@@ -7,27 +7,25 @@ use crate::watcher::metadata_watcher;
 #[cfg(feature = "client")]
 use crate::{
     reflector::{reflector, store::Writer},
-    utils::{Backoff, CancelableJoinHandle, StreamBackoff, WatchStreamExt},
-    watcher::{self, DefaultBackoff, watcher},
+    utils::WatchStreamExt,
+    watcher::watcher,
 };
 use crate::{
     reflector::{self, ObjectRef, store::Store},
     scheduler::{ScheduleRequest, debounced_scheduler},
-    utils::{KubeRuntimeStreamExt, trystream_try_via},
+    utils::{Backoff, CancelableJoinHandle, KubeRuntimeStreamExt, StreamBackoff, trystream_try_via},
+    watcher::{self, DefaultBackoff},
 };
 use educe::Educe;
-#[cfg(feature = "client")]
 use futures::{
+    FutureExt, Stream, StreamExt, TryFuture, TryFutureExt, TryStream, TryStreamExt, channel,
     future::{self, BoxFuture},
-    stream::BoxStream,
-};
-use futures::{
-    FutureExt, Stream, StreamExt, TryFuture, TryFutureExt, TryStream, TryStreamExt, channel, stream,
+    stream::{self, BoxStream},
 };
 #[cfg(feature = "client")] use kube_client::Api;
 use kube_core::{DynamicObject, Resource};
 use pin_project::pin_project;
-#[cfg(feature = "client")] use serde::de::DeserializeOwned;
+use serde::de::DeserializeOwned;
 use std::{
     fmt::{Debug, Display},
     hash::Hash,
@@ -36,8 +34,7 @@ use std::{
     time::Duration,
 };
 use thiserror::Error;
-#[cfg(feature = "client")] use tokio::runtime::Handle;
-use tokio::time::Instant;
+use tokio::{runtime::Handle, time::Instant};
 use tracing::{Instrument, info_span};
 
 mod future_hash_map;
@@ -693,8 +690,6 @@ impl Config {
 /// #    Ok(())
 /// # }
 /// ```
-#[cfg_attr(docsrs, doc(cfg(feature = "client")))]
-#[cfg(feature = "client")]
 pub struct Controller<K>
 where
     K: Clone + Resource + Debug + 'static,
@@ -716,7 +711,6 @@ where
     config: Config,
 }
 
-#[cfg(feature = "client")]
 impl<K> Controller<K>
 where
     K: Clone + Resource + DeserializeOwned + Debug + Send + Sync + 'static,
@@ -729,6 +723,8 @@ where
     /// The [`watcher::Config`] controls to the possible subset of objects of `K` that you want to manage
     /// and receive reconcile events for.
     /// For the full set of objects `K` in the given `Api` scope, you can use [`watcher::Config::default`].
+    #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+    #[cfg(feature = "client")]
     #[must_use]
     pub fn new(main_api: Api<K>, wc: watcher::Config) -> Self
     where
@@ -751,6 +747,8 @@ where
     /// [`Api`]: kube_client::Api
     /// [`dynamic`]: kube_client::core::dynamic
     /// [`Config::default`]: crate::watcher::Config::default
+    #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+    #[cfg(feature = "client")]
     pub fn new_with(main_api: Api<K>, wc: watcher::Config, dyntype: K::DynamicType) -> Self {
         let writer = Writer::<K>::new(dyntype.clone());
         let reader = writer.as_reader();
@@ -812,7 +810,8 @@ where
     /// ```
     ///
     /// Prefer [`Controller::new`] if you do not need to share the stream, or do not need pre-filtering.
-    #[cfg(feature = "unstable-runtime-stream-control")]
+    // kubeless: stream-control constructors are stabilized in this fork (they are the
+    // primary Controller entry points for non-Kubernetes sources).
     pub fn for_stream(
         trigger: impl Stream<Item = Result<K, watcher::Error>> + Send + 'static,
         reader: Store<K>,
@@ -834,7 +833,8 @@ where
     /// This variant constructor is for [`dynamic`] types found through discovery. Prefer [`Controller::for_stream`] for static types.
     ///
     /// [`dynamic`]: kube_client::core::dynamic
-    #[cfg(feature = "unstable-runtime-stream-control")]
+    // kubeless: stream-control constructors are stabilized in this fork (they are the
+    // primary Controller entry points for non-Kubernetes sources).
     pub fn for_stream_with(
         trigger: impl Stream<Item = Result<K, watcher::Error>> + Send + 'static,
         reader: Store<K>,
@@ -998,6 +998,8 @@ where
     ///
     /// [`OwnerReference`]: k8s_openapi::apimachinery::pkg::apis::meta::v1::OwnerReference
     #[must_use]
+    #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+    #[cfg(feature = "client")]
     pub fn owns<Child: Clone + Resource<DynamicType = ()> + DeserializeOwned + Debug + Send + 'static>(
         self,
         api: Api<Child>,
@@ -1009,6 +1011,8 @@ where
     /// Specify `Child` objects which `K` owns and should be watched
     ///
     /// Same as [`Controller::owns`], but accepts a `DynamicType` so it can be used with dynamic resources.
+    #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+    #[cfg(feature = "client")]
     #[must_use]
     pub fn owns_with<Child: Clone + Resource + DeserializeOwned + Debug + Send + 'static>(
         mut self,
@@ -1063,7 +1067,8 @@ where
     ///     .await;
     /// # }
     /// ```
-    #[cfg(feature = "unstable-runtime-stream-control")]
+    // kubeless: stream-control constructors are stabilized in this fork (they are the
+    // primary Controller entry points for non-Kubernetes sources).
     #[must_use]
     pub fn owns_stream<Child: Resource<DynamicType = ()> + Send + 'static>(
         self,
@@ -1079,7 +1084,8 @@ where
     /// as well as sharing input streams between multiple controllers.
     ///
     /// Same as [`Controller::owns_stream`], but accepts a `DynamicType` so it can be used with dynamic resources.
-    #[cfg(feature = "unstable-runtime-stream-control")]
+    // kubeless: stream-control constructors are stabilized in this fork (they are the
+    // primary Controller entry points for non-Kubernetes sources).
     #[must_use]
     pub fn owns_stream_with<Child: Resource + Send + 'static>(
         mut self,
@@ -1256,6 +1262,8 @@ where
     ///
     /// [Operator-SDK]: https://sdk.operatorframework.io/docs/building-operators/ansible/reference/retroactively-owned-resources/
     #[must_use]
+    #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+    #[cfg(feature = "client")]
     pub fn watches<Other, I>(
         self,
         api: Api<Other>,
@@ -1274,6 +1282,8 @@ where
     /// Specify `Watched` object which `K` has a custom relation to and should be watched
     ///
     /// Same as [`Controller::watches`], but accepts a `DynamicType` so it can be used with dynamic resources.
+    #[cfg_attr(docsrs, doc(cfg(feature = "client")))]
+    #[cfg(feature = "client")]
     #[must_use]
     pub fn watches_with<Other, I>(
         mut self,
@@ -1329,7 +1339,8 @@ where
     ///     .await;
     /// # }
     /// ```
-    #[cfg(feature = "unstable-runtime-stream-control")]
+    // kubeless: stream-control constructors are stabilized in this fork (they are the
+    // primary Controller entry points for non-Kubernetes sources).
     #[must_use]
     pub fn watches_stream<Other, I>(
         self,
@@ -1352,7 +1363,8 @@ where
     /// as well as sharing input streams between multiple controllers.
     ///
     /// Same as [`Controller::watches_stream`], but accepts a `DynamicType` so it can be used with dynamic resources.
-    #[cfg(feature = "unstable-runtime-stream-control")]
+    // kubeless: stream-control constructors are stabilized in this fork (they are the
+    // primary Controller entry points for non-Kubernetes sources).
     #[must_use]
     pub fn watches_stream_with<Other, I>(
         mut self,
