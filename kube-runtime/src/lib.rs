@@ -31,6 +31,7 @@ pub mod events;
 pub mod finalizer;
 pub mod reflector;
 pub mod scheduler;
+pub mod source;
 pub mod utils;
 #[cfg_attr(docsrs, doc(cfg(feature = "wait")))]
 #[cfg(feature = "wait")]
@@ -41,6 +42,7 @@ pub use controller::{Config, Controller, applier};
 #[cfg(feature = "finalizer")] pub use finalizer::finalizer;
 pub use reflector::reflector;
 pub use scheduler::scheduler;
+pub use source::{WatchSource, source_watcher};
 pub use utils::WatchStreamExt;
 #[cfg(feature = "client")]
 #[allow(deprecated)]
