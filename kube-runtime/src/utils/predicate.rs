@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll, ready},
 };
 use futures::Stream;
-use kube_client::{Resource, api::ObjectMeta};
+use kube_core::{ObjectMeta, Resource};
 use pin_project::pin_project;
 use std::{
     collections::{
@@ -262,7 +262,7 @@ where
 /// Functional rewrite of the [controller-runtime/predicate module](https://github.com/kubernetes-sigs/controller-runtime/blob/main/pkg/predicate/predicate.go).
 pub mod predicates {
     use super::hash;
-    use kube_client::{Resource, ResourceExt};
+    use kube_core::{Resource, ResourceExt};
 
     /// Hash the generation of a Resource K
     pub fn generation<K: Resource>(obj: &K) -> Option<u64> {

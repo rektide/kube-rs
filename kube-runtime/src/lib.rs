@@ -22,21 +22,31 @@
 #![allow(clippy::let_underscore_untyped)]
 
 pub mod controller;
+#[cfg_attr(docsrs, doc(cfg(feature = "events")))]
+#[cfg(feature = "events")]
 pub mod events;
 
+#[cfg_attr(docsrs, doc(cfg(feature = "finalizer")))]
+#[cfg(feature = "finalizer")]
 pub mod finalizer;
 pub mod reflector;
 pub mod scheduler;
+pub mod source;
 pub mod utils;
+#[cfg_attr(docsrs, doc(cfg(feature = "wait")))]
+#[cfg(feature = "wait")]
 pub mod wait;
 pub mod watcher;
 
 pub use controller::{Config, Controller, applier};
-pub use finalizer::finalizer;
+#[cfg(feature = "finalizer")] pub use finalizer::finalizer;
 pub use reflector::reflector;
 pub use scheduler::scheduler;
+pub use source::{WatchSource, source_watcher};
 pub use utils::WatchStreamExt;
-#[allow(deprecated)] pub use watcher::{metadata_watcher, watcher};
+#[cfg(feature = "client")]
+#[allow(deprecated)]
+pub use watcher::{metadata_watcher, watcher};
 
 pub use utils::{Predicate, PredicateConfig, predicates};
-pub use wait::conditions;
+#[cfg(feature = "wait")] pub use wait::conditions;

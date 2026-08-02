@@ -2,7 +2,7 @@
 
 use std::borrow::Cow;
 
-use k8s_openapi::apimachinery::pkg::apis::meta::v1::ObjectMeta;
+use crate::k8s::ObjectMeta;
 use serde::Deserialize;
 use serde_value::DeserializerError;
 use thiserror::Error;

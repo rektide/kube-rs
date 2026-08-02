@@ -8,10 +8,7 @@ use crate::{
 };
 use ahash::AHashMap;
 use educe::Educe;
-use kube_client::{
-    ResourceExt,
-    core::{Selector, SelectorExt},
-};
+use kube_core::{ResourceExt, Selector, SelectorExt};
 use parking_lot::RwLock;
 use std::{fmt::Debug, hash::Hash, sync::Arc};
 use thiserror::Error;

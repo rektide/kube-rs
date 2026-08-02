@@ -1,9 +1,8 @@
 use educe::Educe;
-use k8s_openapi::{api::core::v1::ObjectReference, apimachinery::pkg::apis::meta::v1::OwnerReference};
-#[cfg(doc)] use kube_client::core::ObjectMeta;
-use kube_client::{
-    api::{DynamicObject, Resource},
-    core::api_version_from_group_version,
+#[cfg(doc)] use kube_core::ObjectMeta;
+use kube_core::{
+    DynamicObject, Resource, api_version_from_group_version,
+    k8s::{ObjectReference, OwnerReference},
 };
 use std::{
     borrow::Cow,
@@ -256,7 +255,7 @@ impl<K: Lookup> ObjectRef<K> {
     /// Create a object ref for a type erased dynamic object (using a static impl)
     pub fn erase(self) -> ObjectRef<DynamicObject> {
         ObjectRef {
-            dyntype: kube_client::api::ApiResource {
+            dyntype: kube_core::ApiResource {
                 group: K::group(&self.dyntype).to_string(),
                 version: K::version(&self.dyntype).to_string(),
                 api_version: K::api_version(&self.dyntype).to_string(),

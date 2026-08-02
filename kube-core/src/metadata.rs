@@ -1,7 +1,7 @@
 //! Metadata structs used in traits, lists, and dynamic objects.
 use std::{borrow::Cow, marker::PhantomData};
 
-pub use k8s_openapi::apimachinery::pkg::apis::meta::v1::{ListMeta, ObjectMeta};
+pub use crate::k8s::{ListMeta, ObjectMeta};
 use serde::{Deserialize, Serialize};
 
 use crate::{DynamicObject, Resource};

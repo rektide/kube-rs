@@ -6,15 +6,16 @@ use crate::{
     request,
 };
 use jiff::Timestamp;
+#[cfg(feature = "k8s-openapi")]
 use k8s_openapi::api::apps::v1::{DaemonSet, Deployment, ReplicaSet, StatefulSet};
 
 /// Restartable Resource marker trait
 pub trait Restart {}
 
-impl Restart for Deployment {}
-impl Restart for DaemonSet {}
-impl Restart for StatefulSet {}
-impl Restart for ReplicaSet {}
+#[cfg(feature = "k8s-openapi")] impl Restart for Deployment {}
+#[cfg(feature = "k8s-openapi")] impl Restart for DaemonSet {}
+#[cfg(feature = "k8s-openapi")] impl Restart for StatefulSet {}
+#[cfg(feature = "k8s-openapi")] impl Restart for ReplicaSet {}
 
 impl Request {
     /// Restart a resource
